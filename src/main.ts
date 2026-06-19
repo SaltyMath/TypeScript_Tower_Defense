@@ -37,12 +37,12 @@ const START_LIVES = 10;
 const START_MONEY = 200;
 
 const pathPoints: Vec2[] = [
-  { x: 0, y: 280 },
-  { x: 240, y: 280 },
-  { x: 240, y: 120 },
-  { x: 560, y: 120 },
-  { x: 560, y: 420 },
-  { x: 800, y: 420 },
+    { x: 0, y: 200 },
+    { x: 300, y: 200 },
+    { x: 300, y: 400 },
+    { x: 200, y: 400 },
+    { x: 200, y: 600 },
+    { x: 400, y: 600 },
 ];
 
 const assetPaths: Record<SpriteKey, string> = {
@@ -255,16 +255,18 @@ class Game {
   }
 
   isOnPath(position: Vec2) {
+    const pathRadius = GRID_SIZE * 0.75;
     for (let i = 0; i < pathPoints.length - 1; i += 1) {
       const a = pathPoints[i]!;
       const b = pathPoints[i + 1]!;
       const segmentLength = distance(a, b);
+      if (segmentLength === 0) continue;
       const projection = ((position.x - a.x) * (b.x - a.x) + (position.y - a.y) * (b.y - a.y)) / (segmentLength * segmentLength);
       const closest = {
         x: a.x + clamp(projection, 0, 1) * (b.x - a.x),
         y: a.y + clamp(projection, 0, 1) * (b.y - a.y),
       };
-      if (distance(position, closest) < GRID_SIZE * 0.6) return true;
+      if (distance(position, closest) < pathRadius) return true;
     }
     return false;
   }
