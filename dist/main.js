@@ -36,6 +36,14 @@ const pathPoints = [
     { x: 200, y: 400 },
     { x: 200, y: 600 },
     { x: 400, y: 600 },
+    { x: 400, y: 300 },
+    { x: 600, y: 300 },
+    { x: 600, y: 500 },
+    { x: 800, y: 500 },
+    { x: 800, y: 200 },
+    { x: 1000, y: 200 },
+    { x: 1000, y: 400 },
+    { x: 1200, y: 400 },
 ];
 const assetPaths = {
     background: "./assets/background.png",
@@ -43,6 +51,8 @@ const assetPaths = {
     tower: "./assets/tower.png",
     enemy: "./assets/enemy.png",
     projectile: "./assets/projectile.png",
+    allyCastle: "./assets/allyCastle.png",
+    enemyCastle: "./assets/enemyCastle.png",
 };
 const assets = new AssetLoader();
 function distance(a, b) {
@@ -138,15 +148,30 @@ class Projectile {
         this.position.y += (dy / dist) * travel;
     }
     draw(ctx) {
+        const dx = this.target.position.x - this.position.x;
+        const dy = this.target.position.y - this.position.y;
+        const angle = Math.atan2(dy, dx);
+        const adjustedAngle = angle + Math.PI / 2;
         const sprite = assets.get("projectile");
         if (sprite) {
-            ctx.drawImage(sprite, this.position.x - 10, this.position.y - 10, 20, 20);
+            ctx.save();
+            ctx.translate(this.position.x, this.position.y);
+            ctx.rotate(adjustedAngle);
+            ctx.drawImage(sprite, -10, -10, 20, 20);
+            ctx.restore();
         }
         else {
+            ctx.save();
+            ctx.translate(this.position.x, this.position.y);
+            ctx.rotate(adjustedAngle);
             ctx.fillStyle = "#ffb";
             ctx.beginPath();
-            ctx.arc(this.position.x, this.position.y, this.radius, 0, Math.PI * 2);
+            ctx.moveTo(0, -this.radius);
+            ctx.lineTo(-this.radius * 0.6, this.radius);
+            ctx.lineTo(this.radius * 0.6, this.radius);
+            ctx.closePath();
             ctx.fill();
+            ctx.restore();
         }
     }
 }
@@ -259,7 +284,7 @@ class Game {
             this.waveTimer = 0;
         }
         if (this.enemiesToSpawn > 0) {
-            this.enemySpawnTimer += delta;
+            this.enemySpawnTimer += delta * 1.5;
             if (this.enemySpawnTimer >= 2) {
                 this.spawnEnemy();
                 this.enemySpawnTimer = 0;
@@ -291,10 +316,13 @@ class Game {
                 const end = pathPoints[i + 1];
                 const dx = end.x - start.x;
                 const dy = end.y - start.y;
-                const segmentLength = Math.max(1, Math.round(distance(start, end) / GRID_SIZE));
-                for (let j = 0; j <= segmentLength; j += 1) {
-                    const x = start.x + (dx / segmentLength) * j - GRID_SIZE / 2;
-                    const y = start.y + (dy / segmentLength) * j - GRID_SIZE / 2;
+                const segmentDistance = distance(start, end);
+                const tileCount = Math.max(1, Math.ceil(segmentDistance / GRID_SIZE));
+                const stepX = dx / tileCount;
+                const stepY = dy / tileCount;
+                for (let j = 0; j <= tileCount; j += 1) {
+                    const x = start.x + stepX * j - GRID_SIZE / 2;
+                    const y = start.y + stepY * j - GRID_SIZE / 2;
                     ctx.drawImage(sprite, x, y, GRID_SIZE, GRID_SIZE);
                 }
             }
@@ -326,10 +354,34 @@ class Game {
         }
     }
     draw(ctx) {
-        ctx.fillStyle = "#09131f";
-        ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        const background = assets.get("background");
+        if (background) {
+            ctx.drawImage(background, 0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        }
+        else {
+            ctx.fillStyle = "#09131f";
+            ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
+        }
+        const enemyCastle = assets.get("enemyCastle");
+        const allyCastle = assets.get("allyCastle");
+        const start = pathPoints[0];
+        const end = pathPoints[pathPoints.length - 1];
         this.drawGrid(ctx);
         this.drawPath(ctx);
+        if (enemyCastle) {
+            ctx.drawImage(enemyCastle, start.x - 16, start.y - GRID_SIZE, GRID_SIZE * 2, GRID_SIZE * 2);
+        }
+        else {
+            ctx.fillStyle = "#b33";
+            ctx.fillRect(start.x - GRID_SIZE * 0.25, start.y - GRID_SIZE * 0.75, GRID_SIZE * 1.5, GRID_SIZE * 1.5);
+        }
+        if (allyCastle) {
+            ctx.drawImage(allyCastle, end.x - 130, end.y - GRID_SIZE, GRID_SIZE * 2, GRID_SIZE * 2);
+        }
+        else {
+            ctx.fillStyle = "#3b3";
+            ctx.fillRect(end.x - GRID_SIZE * 1.25, end.y - GRID_SIZE * 0.75, GRID_SIZE * 1.5, GRID_SIZE * 1.5);
+        }
         this.towers.forEach((tower) => tower.draw(ctx));
         this.enemies.forEach((enemy) => enemy.draw(ctx));
         this.projectiles.forEach((projectile) => projectile.draw(ctx));

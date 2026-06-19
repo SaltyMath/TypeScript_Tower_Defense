@@ -2,7 +2,7 @@ type Vec2 = {
     x: number;
     y: number;
 };
-type SpriteKey = "background" | "path" | "tower" | "enemy" | "projectile";
+type SpriteKey = "background" | "path" | "tower" | "enemy" | "projectile" | "allyCastle" | "enemyCastle";
 declare class AssetLoader {
     private images;
     load(list: Record<SpriteKey, string>): Promise<void>;
