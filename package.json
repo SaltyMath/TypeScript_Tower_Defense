@@ -1,5 +1,12 @@
 {
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "serve": "live-server --port=8080 --entry-file=index.html",
+    "dev": "npm run watch"
+  },
   "devDependencies": {
+    "live-server": "^1.2.2",
     "typescript": "^6.0.3"
   }
 }
