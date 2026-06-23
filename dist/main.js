@@ -48,8 +48,11 @@ const pathPoints = [
 const assetPaths = {
     background: "./assets/background.png",
     path: "./assets/path.png",
-    tower: "./assets/tower.png",
-    enemy: "./assets/enemy.png",
+    tower: "./assets/guard_idle.png",
+    enemyWalkN: "./assets/walkN.png",
+    enemyWalkS: "./assets/walkS.png",
+    enemyWalkE: "./assets/walkE.png",
+    enemyWalkO: "./assets/walkO.png",
     projectile: "./assets/projectile.png",
     allyCastle: "./assets/allyCastle.png",
     enemyCastle: "./assets/enemyCastle.png",
@@ -69,6 +72,13 @@ class Enemy {
         this.health = 5;
         this.radius = 18;
         this.progress = 0;
+        this.frame = 0;
+        this.frameTimer = 0;
+        this.currentSprite = "enemyWalkE";
+        this.frameWidth = 64;
+        this.frameHeight = 64;
+        this.frameCount = 8;
+        this.animationSpeed = 0.1;
         this.position = { ...start };
     }
     update(delta) {
@@ -79,6 +89,12 @@ class Enemy {
         const dy = target.y - this.position.y;
         const distanceToTarget = Math.hypot(dx, dy);
         const travel = this.speed * delta;
+        if (Math.abs(dx) > Math.abs(dy)) {
+            this.currentSprite = dx > 0 ? "enemyWalkE" : "enemyWalkO";
+        }
+        else {
+            this.currentSprite = dy > 0 ? "enemyWalkS" : "enemyWalkN";
+        }
         if (travel >= distanceToTarget) {
             this.position = { ...target };
             this.pathIndex += 1;
@@ -87,6 +103,11 @@ class Enemy {
             this.position.x += (dx / distanceToTarget) * travel;
             this.position.y += (dy / distanceToTarget) * travel;
         }
+        this.frameTimer += delta;
+        if (this.frameTimer >= this.animationSpeed) {
+            this.frame = (this.frame + 1) % this.frameCount;
+            this.frameTimer = 0;
+        }
         const totalDistance = pathPoints
             .slice(0, this.pathIndex + 1)
             .reduce((sum, point, index, arr) => {
@@ -94,12 +115,14 @@ class Enemy {
                 return 0;
             return sum + distance(arr[index - 1], point);
         }, 0);
-        this.progress = totalDistance + distance(pathPoints[this.pathIndex], this.position);
+        this.progress =
+            totalDistance + distance(pathPoints[this.pathIndex], this.position);
     }
     draw(ctx) {
-        const sprite = assets.get("enemy");
+        const sprite = assets.get(this.currentSprite);
         if (sprite) {
-            ctx.drawImage(sprite, this.position.x - 24, this.position.y - 24, 48, 48);
+            const DISPLAY_SIZE = 96;
+            ctx.drawImage(sprite, this.frame * this.frameWidth, 0, this.frameWidth, this.frameHeight, this.position.x - DISPLAY_SIZE / 2, this.position.y - DISPLAY_SIZE / 2, DISPLAY_SIZE, DISPLAY_SIZE);
         }
         else {
             ctx.fillStyle = "#d43";
@@ -116,7 +139,8 @@ class Enemy {
         return this.health > 0;
     }
     get reachedEnd() {
-        return this.pathIndex >= pathPoints.length - 1 && distance(this.position, pathPoints[pathPoints.length - 1]) < 2;
+        return (this.pathIndex >= pathPoints.length - 1 &&
+            distance(this.position, pathPoints[pathPoints.length - 1]) < 2);
     }
 }
 class Projectile {
@@ -153,11 +177,12 @@ class Projectile {
         const angle = Math.atan2(dy, dx);
         const adjustedAngle = angle + Math.PI / 2;
         const sprite = assets.get("projectile");
+        const PROJECTILE_SIZE = 30;
         if (sprite) {
             ctx.save();
             ctx.translate(this.position.x, this.position.y);
             ctx.rotate(adjustedAngle);
-            ctx.drawImage(sprite, -10, -10, 20, 20);
+            ctx.drawImage(sprite, -PROJECTILE_SIZE / 2, -PROJECTILE_SIZE / 2, PROJECTILE_SIZE, PROJECTILE_SIZE);
             ctx.restore();
         }
         else {
@@ -182,25 +207,60 @@ class Tower {
         this.cooldown = 0;
         this.radius = 20;
         this.damage = 1;
+        this.frame = 0;
+        this.frameTimer = 0;
+        this.currentRow = 3; // S par défaut
+        this.frameWidth = 64;
+        this.frameHeight = 64;
+        this.frameCount = 12;
+        this.animationSpeed = 0.12;
         this.position = { ...position };
     }
     update(delta, enemies, projectiles) {
         this.cooldown -= delta;
-        if (this.cooldown > 0)
-            return;
         const target = enemies
             .filter((enemy) => enemy.isAlive)
             .filter((enemy) => distance(enemy.position, this.position) <= this.range)
             .sort((a, b) => b.progress - a.progress)[0];
-        if (!target)
+        if (target) {
+            this.currentRow = this.getDirectionRow(target.position);
+        }
+        this.frameTimer += delta;
+        if (this.frameTimer >= this.animationSpeed) {
+            this.frame = (this.frame + 1) % this.frameCount;
+            this.frameTimer = 0;
+        }
+        if (this.cooldown > 0 || !target)
             return;
         projectiles.push(new Projectile({ x: this.position.x, y: this.position.y }, target));
         this.cooldown = this.fireRate;
     }
+    getDirectionRow(target) {
+        const dx = target.x - this.position.x;
+        const dy = target.y - this.position.y;
+        const angle = Math.atan2(dy, dx);
+        const degrees = (angle * 180) / Math.PI;
+        if (degrees >= -157.5 && degrees < -112.5)
+            return 7; // N
+        if (degrees >= -112.5 && degrees < -67.5)
+            return 6; // NE
+        if (degrees >= -67.5 && degrees < -22.5)
+            return 5; // E
+        if (degrees >= -22.5 && degrees < 22.5)
+            return 4; // SE
+        if (degrees >= 22.5 && degrees < 67.5)
+            return 3; // S
+        if (degrees >= 67.5 && degrees < 112.5)
+            return 2; // SO
+        if (degrees >= 112.5 && degrees < 157.5)
+            return 1; // O
+        return 0; // NO
+    }
     draw(ctx) {
         const sprite = assets.get("tower");
         if (sprite) {
-            ctx.drawImage(sprite, this.position.x - 24, this.position.y - 24, 48, 48);
+            const DISPLAY_SIZE = 96;
+            ctx.drawImage(sprite, this.frame * this.frameWidth, this.currentRow * this.frameHeight, this.frameWidth, this.frameHeight, this.position.x - DISPLAY_SIZE / 2, this.position.y - DISPLAY_SIZE / 2, DISPLAY_SIZE, DISPLAY_SIZE);
         }
         else {
             ctx.fillStyle = "#38a";
@@ -234,11 +294,13 @@ class Game {
     }
     handleClick(event) {
         const rect = canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
-        const position = { x, y };
-        if (this.towers.some((tower) => distance(tower.position, position) < GRID_SIZE * 0.75))
+        const position = {
+            x: event.clientX - rect.left,
+            y: event.clientY - rect.top,
+        };
+        if (this.towers.some((tower) => distance(tower.position, position) < GRID_SIZE * 0.75)) {
             return;
+        }
         if (this.isOnPath(position))
             return;
         if (this.money < 100)
@@ -254,7 +316,9 @@ class Game {
             const segmentLength = distance(a, b);
             if (segmentLength === 0)
                 continue;
-            const projection = ((position.x - a.x) * (b.x - a.x) + (position.y - a.y) * (b.y - a.y)) / (segmentLength * segmentLength);
+            const projection = ((position.x - a.x) * (b.x - a.x) +
+                (position.y - a.y) * (b.y - a.y)) /
+                (segmentLength * segmentLength);
             const closest = {
                 x: a.x + clamp(projection, 0, 1) * (b.x - a.x),
                 y: a.y + clamp(projection, 0, 1) * (b.y - a.y),
@@ -279,7 +343,9 @@ class Game {
     }
     update(delta) {
         this.waveTimer += delta;
-        if (this.waveTimer >= 8 && this.enemiesToSpawn === 0 && this.enemies.length === 0) {
+        if (this.waveTimer >= 8 &&
+            this.enemiesToSpawn === 0 &&
+            this.enemies.length === 0) {
             this.spawnWave();
             this.waveTimer = 0;
         }

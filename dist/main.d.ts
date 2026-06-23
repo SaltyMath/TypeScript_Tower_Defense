@@ -2,7 +2,7 @@ type Vec2 = {
     x: number;
     y: number;
 };
-type SpriteKey = "background" | "path" | "tower" | "enemy" | "projectile" | "allyCastle" | "enemyCastle";
+type SpriteKey = "background" | "path" | "tower" | "enemyWalkN" | "enemyWalkS" | "enemyWalkE" | "enemyWalkO" | "projectile" | "allyCastle" | "enemyCastle";
 declare class AssetLoader {
     private images;
     load(list: Record<SpriteKey, string>): Promise<void>;
@@ -29,6 +29,13 @@ declare class Enemy {
     health: number;
     radius: number;
     progress: number;
+    frame: number;
+    frameTimer: number;
+    currentSprite: SpriteKey;
+    readonly frameWidth = 64;
+    readonly frameHeight = 64;
+    readonly frameCount = 8;
+    readonly animationSpeed = 0.1;
     constructor(start: Vec2);
     update(delta: number): void;
     draw(ctx: CanvasRenderingContext2D): void;
@@ -53,8 +60,16 @@ declare class Tower {
     cooldown: number;
     radius: number;
     damage: number;
+    frame: number;
+    frameTimer: number;
+    currentRow: number;
+    readonly frameWidth = 64;
+    readonly frameHeight = 64;
+    readonly frameCount = 12;
+    readonly animationSpeed = 0.12;
     constructor(position: Vec2);
     update(delta: number, enemies: Enemy[], projectiles: Projectile[]): void;
+    getDirectionRow(target: Vec2): 0 | 5 | 1 | 2 | 6 | 3 | 7 | 4;
     draw(ctx: CanvasRenderingContext2D): void;
 }
 declare class Game {
