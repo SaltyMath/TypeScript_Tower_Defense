@@ -1,0 +1,1 @@
+{"version":3,"file":"BasicEnemy.d.ts","sourceRoot":"","sources":["../../src/enemies/BasicEnemy.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,SAAS,EAAE,MAAM,gBAAgB,CAAC;AAC3C,OAAO,EAAE,IAAI,EAAE,MAAM,kBAAkB,CAAC;AAExC,qBAAa,UAAW,SAAQ,SAAS;gBACzB,KAAK,EAAE,IAAI;CAQ1B"}

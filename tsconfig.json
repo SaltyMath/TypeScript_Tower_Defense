@@ -21,6 +21,6 @@
     "resolveJsonModule": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/config/constants.ts", "src/config/path.ts", "src/config/assets.ts", "src/core/assetsInstance.ts", "src/core/AssetLoader.ts"],
   "exclude": ["node_modules", "dist"]
 }
